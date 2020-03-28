@@ -18,7 +18,7 @@ USER_STATUS_REQ_URL = 'https://codeforces.com/api/user.status?handle={handle}&fr
 # Url to get submission code for user
 SUBMISSION_URL = 'https://codeforces.com/contest/{contestId}/submission/{submissionId}'
 # Tag where the source code begins
-SOURCE_CODE_BEGIN = '<pre class="prettyprint program-source" style="padding: 0.5em;">'
+SOURCE_CODE_BEGIN = '<pre id="program-source-text" class="prettyprint lang-cpp linenums program-source" style="padding: 0.5em;">'
 # Used to skip to code tag
 START_POINT = 17000
 # Path to current directory
@@ -50,14 +50,16 @@ with urlReq.urlopen(USER_STATUS_REQ_URL.format(handle=HANDLE, count=MAX_THRESHOL
         acContestId = submissions[0]['problem']['contestId']
         acProblemIndex = submissions[0]['problem']['index']
         acProblemName = submissions[0]['problem']['name']
+        acSubmissionId = submissions[0]['id']
         # Contains all submissions for last solved problem
         submissionForProblem = list(filter(lambda sub: sub['problem']['contestId'] == acContestId and sub['problem']['index'] == acProblemIndex, submissions))
 
         # Creating folder and file for this data
         dirName = str(BASE_DIR_NAME)+'/ContestID_'+str(acContestId)+'/'+acProblemIndex+'_'+acProblemName
         os.makedirs(dirName, exist_ok=True)
+
+        # Writing Stats to File
         with open(dirName+'/Stats.md','w') as logFile:
-            # Writing Stats to File
             statsDirToPrint = {}
             statsDirToPrint['Problem Name'] = str(acProblemName)
             statsDirToPrint['Difficulty'] = str(acProblemIndex)
@@ -72,5 +74,16 @@ with urlReq.urlopen(USER_STATUS_REQ_URL.format(handle=HANDLE, count=MAX_THRESHOL
             for key, val in statsDirToPrint.items():
                 logFile.write('## '+key+'\n'+val+'\n')
             logFile.close()
+
+        # Getting submission code
+        with urlReq.urlopen(SUBMISSION_URL.format(contestId=acContestId, submissionId=acSubmissionId)) as response:
+            htmlWebPage = response.read().decode('utf-8')
+            startPos = htmlWebPage.find(SOURCE_CODE_BEGIN, START_POINT) + len(SOURCE_CODE_BEGIN)
+            endPos = htmlWebPage.find('</pre>', startPos)
+            result = parse(htmlWebPage[startPos:endPos]).replace('\r', '')
+            ext = get_ext(submissionForProblem[0]['programmingLanguage'])
+            with open(dirName+'/Solution.'+ext, 'w') as sourceFile:
+                sourceFile.write(result)
+                sourceFile.close()
     else:
         print('API error')
