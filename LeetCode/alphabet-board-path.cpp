@@ -1,4 +1,4 @@
-// Problem URL: https://leetcode.com/problems/alphabet-board-path/submissions/
+// Problem URL: https://leetcode.com/problems/alphabet-board-path/
 
 class Solution {
 public:
